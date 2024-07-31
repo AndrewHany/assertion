@@ -1,4 +1,4 @@
-package assertion
+package assertions
 
 import (
 	"fmt"
