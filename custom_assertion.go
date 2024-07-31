@@ -2,7 +2,6 @@ package assertion
 
 import (
 	"math"
-	"reflect"
 	"time"
 
 	"github.com/smarty/assertions"
@@ -24,13 +23,15 @@ func AssertTimeToDuration(duration time.Duration) AssertionFunc {
 		if len(expected) == 0 || expected[0] == nil {
 			return "expected value is missing"
 		}
-		// check if actual is a time.Time
-		if reflect.TypeOf(actual).String() != TimeType || reflect.TypeOf(expected[0]).String() != TimeType {
-			return assertions.ShouldEqual(actual, expected[0])
+
+		if act, ok := actual.(time.Time); ok {
+			actual = act.Truncate(duration)
 		}
-		actualTime := (actual.(time.Time)).Truncate(duration)
-		expectedTime := (expected[0]).(time.Time).Truncate(duration)
-		return assertions.ShouldEqual(actualTime, expectedTime)
+
+		if exp, ok := expected[0].(time.Time); ok {
+			expected[0] = exp.Truncate(duration)
+		}
+		return assertions.ShouldEqual(actual, expected[0])
 	}
 }
 
@@ -39,13 +40,13 @@ func AssertFloat64ToDecimalPlaces(decimalPlaces int) AssertionFunc {
 		if len(expected) == 0 || expected[0] == nil {
 			return "expected value is missing"
 		}
-		// check if actual is a float64
-		if reflect.TypeOf(actual).String() != FloatType || reflect.TypeOf(expected[0]).String() != FloatType {
-			return assertions.ShouldEqual(actual, expected[0])
+		if act, ok := actual.(float64); ok {
+			actual = truncateFloatDecimalPlaces(act, decimalPlaces)
 		}
-		actualFloat := truncateFloatDecimalPlaces(actual.(float64), decimalPlaces)
-		expectedFloat := truncateFloatDecimalPlaces(expected[0].(float64), decimalPlaces)
-		return assertions.ShouldEqual(actualFloat, expectedFloat)
+		if exp, ok := expected[0].(float64); ok {
+			expected[0] = truncateFloatDecimalPlaces(exp, decimalPlaces)
+		}
+		return assertions.ShouldEqual(actual, expected[0])
 	}
 }
 
