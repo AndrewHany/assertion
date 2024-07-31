@@ -2,7 +2,9 @@
 Assertion style package, supporting custom assertions
 
 This package is build on top of `github.com/smarty/assertions` package
+
 it allows custom assertions on fields and types
+
 you basically do
 ```go
 	customAssertions := map[string]assertions.AssertionFunc{
