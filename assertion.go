@@ -10,6 +10,7 @@ import (
 )
 
 var defaultAssertionFunc = assertions.ShouldEqual
+var removeIndexRegex = regexp.MustCompile(`\[\d+\]`)
 
 func Assert(actual any, expected any, customAssertions map[string]AssertionFunc) (bool, string) {
 	// If not custom assertion defined, use default assertion for the whole object
@@ -100,8 +101,7 @@ func assertWithPaths(
 func hasCustomAssertion(path string, fieldType reflect.Type, customAssertions map[string]AssertionFunc) (AssertionFunc, bool) {
 	// check if custom assertion is defined for the path
 	// replace index with [] to match the path
-	regex := regexp.MustCompile(`\[\d+\]`)
-	if customAssertionByPath, ok := customAssertions[regex.ReplaceAllString(path, "[]")]; ok {
+	if customAssertionByPath, ok := customAssertions[removeIndexRegex.ReplaceAllString(path, "[]")]; ok {
 		return customAssertionByPath, true
 	}
 	// check if custom assertion is defined for the type
