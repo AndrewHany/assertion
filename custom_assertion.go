@@ -51,5 +51,9 @@ func AssertFloat64ToDecimalPlaces(decimalPlaces int) AssertionFunc {
 }
 
 func truncateFloatDecimalPlaces(num float64, decimalPlaces int) float64 {
+	// handle 0 decimal places
+	if decimalPlaces == 0 {
+		return math.Floor(num)
+	}
 	return math.Floor(num*math.Pow(10, float64(decimalPlaces))) / math.Pow(10, float64(decimalPlaces))
 }

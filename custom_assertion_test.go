@@ -128,6 +128,13 @@ func TestAssertFloat64ToDecimalPlaces(t *testing.T) {
 			decimal:    8,
 			expectedOk: false,
 		},
+		{
+			name:       "test with 0 decimal places",
+			actual:     1.23456789,
+			expected:   1.0,
+			decimal:    0,
+			expectedOk: true,
+		},
 	}
 
 	for _, tt := range testTable {
