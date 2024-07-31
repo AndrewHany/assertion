@@ -1,4 +1,4 @@
-module github.com/AndrewHany/assertions
+module github.com/AndrewHany/assertion
 
 go 1.20
 
