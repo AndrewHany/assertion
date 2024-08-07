@@ -185,6 +185,14 @@ func TestHasCustomAssertion(t *testing.T) {
 			expectedFuncResp: "assertionFuncA",
 			expectedOk:       true,
 		},
+		{
+			name: "Custom assertion with nil type",
+			path: "$",
+			customAssertions: map[string]AssertionFunc{
+				"string": assertionFuncB,
+			},
+			expectedOk: false,
+		},
 	}
 
 	for _, tt := range testTable {
@@ -293,6 +301,21 @@ func TestAssertWithPaths_genericChecks(t *testing.T) {
 			}{Time: testTime.Add(time.Second)},
 			expectedMatch:   false,
 			expectedMessage: fmt.Sprintf("Path: $.Time\nExpected: time.Time{%v}\nActual:   time.Time{%v}\n(Should equal)!\n", testTime.Add(time.Second), testTime),
+		},
+		{
+			name: "Test with invalid values and custom assertion",
+			actual: struct {
+				Time *time.Time
+			}{Time: nil},
+			expected: struct {
+				Time *time.Time
+			}{Time: &testTime},
+			expectedMatch: true,
+			customAssertions: map[string]AssertionFunc{
+				"$.Time": func(actual any, expected ...any) string {
+					return ""
+				},
+			},
 		},
 	}
 
@@ -718,4 +741,36 @@ func TestFormatMessage(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestGetType(t *testing.T) {
+	testTable := []struct {
+		name         string
+		actual       reflect.Value
+		expected     reflect.Value
+		expectedType reflect.Type
+	}{
+		{
+			name:         "Test with valid values",
+			actual:       reflect.ValueOf(1),
+			expected:     reflect.ValueOf(1),
+			expectedType: reflect.TypeOf(1),
+		},
+		{
+			name:         "Test with invalid values",
+			actual:       reflect.ValueOf(nil),
+			expected:     reflect.ValueOf(nil),
+			expectedType: nil,
+		},
+	}
+
+	for _, tt := range testTable {
+		t.Run(tt.name, func(t *testing.T) {
+			actualType := getType(tt.actual, tt.expected)
+			if actualType != tt.expectedType {
+				t.Errorf("Expected type: %v, got: %v", tt.expectedType, actualType)
+			}
+		})
+	}
+
 }

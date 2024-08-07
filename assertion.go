@@ -34,14 +34,15 @@ func assertWithPaths(
 	if !actual.IsValid() && !expected.IsValid() {
 		return true, ""
 	}
+	typ := getType(actual, expected)
+
+	// check if custom assertion is defined for the path
+	if customAssertionFunc, ok := hasCustomAssertion(path, typ, customAssertions); ok {
+		return assertValue(path, customAssertionFunc, actual, expected)
+	}
 
 	if !actual.IsValid() || !expected.IsValid() {
 		return false, formatMessage(message, "Path: %s\nExpected: %v\nActual: %v", path, expected, actual)
-	}
-
-	// check if custom assertion is defined for the path
-	if customAssertionFunc, ok := hasCustomAssertion(path, actual.Type(), customAssertions); ok {
-		return assertValue(path, customAssertionFunc, actual, expected)
 	}
 
 	switch actual.Kind() {
@@ -105,8 +106,10 @@ func hasCustomAssertion(path string, fieldType reflect.Type, customAssertions ma
 		return customAssertionByPath, true
 	}
 	// check if custom assertion is defined for the type
-	if customAssertionByType, ok := customAssertions[fieldType.String()]; ok {
-		return customAssertionByType, true
+	if fieldType != nil {
+		if customAssertionByType, ok := customAssertions[fieldType.String()]; ok {
+			return customAssertionByType, true
+		}
 	}
 	return nil, false
 }
@@ -130,6 +133,16 @@ func getValue(value reflect.Value) any {
 		return nil
 	}
 	return value.Interface()
+}
+
+func getType(act reflect.Value, exp reflect.Value) reflect.Type {
+	if act.IsValid() {
+		return act.Type()
+	}
+	if exp.IsValid() {
+		return exp.Type()
+	}
+	return nil
 }
 
 func formatMessage(message string, format string, a ...any) string {
