@@ -31,7 +31,7 @@ func TestAssertValue(t *testing.T) {
 			value1:          reflect.ValueOf(nil),
 			value2:          reflect.ValueOf(1),
 			expectedMatch:   false,
-			expectedMessage: "Path: $\nExpected: 1\nActual: <invalid reflect.Value>",
+			expectedMessage: "Path: $\nExpected: 1\nActual:   nil\n(Should equal)!",
 		},
 		{
 			name:            "Test with nil value2",
@@ -39,7 +39,7 @@ func TestAssertValue(t *testing.T) {
 			value1:          reflect.ValueOf(1),
 			value2:          reflect.ValueOf(nil),
 			expectedMatch:   false,
-			expectedMessage: "Path: $\nExpected: <invalid reflect.Value>\nActual: 1",
+			expectedMessage: "Path: $\nExpected: nil\nActual:   1\n(Should equal)!",
 		},
 		{
 			name:            "Test with nil custom assertion",
@@ -68,6 +68,17 @@ func TestAssertValue(t *testing.T) {
 			expectedMatch:   false,
 			expectedMessage: "Path: $\nExpected: \"1\"\nActual:   1\n(Should equal)!",
 		},
+		{
+			name:   "Test invalid with custom assertion",
+			path:   "$",
+			value1: reflect.ValueOf(1),
+			value2: reflect.ValueOf(nil),
+			customAssertion: func(actual any, expected ...any) string {
+				return ""
+			},
+			expectedMatch:   true,
+			expectedMessage: "",
+		},
 	}
 
 	for _, tt := range testTable {
@@ -78,6 +89,34 @@ func TestAssertValue(t *testing.T) {
 			}
 			if message != tt.expectedMessage {
 				t.Errorf("Expected message:\n%s\ngot:\n%s", tt.expectedMessage, message)
+			}
+		})
+	}
+}
+
+func TestGetValue(t *testing.T) {
+	testTable := []struct {
+		name          string
+		value         reflect.Value
+		expectedValue any
+	}{
+		{
+			name:          "Test with valid value",
+			value:         reflect.ValueOf(1),
+			expectedValue: 1,
+		},
+		{
+			name:          "Test with invalid value",
+			value:         reflect.ValueOf(nil),
+			expectedValue: nil,
+		},
+	}
+
+	for _, tt := range testTable {
+		t.Run(tt.name, func(t *testing.T) {
+			actualValue := getValue(tt.value)
+			if actualValue != tt.expectedValue {
+				t.Errorf("Expected value: %v, got: %v", tt.expectedValue, actualValue)
 			}
 		})
 	}

@@ -113,25 +113,23 @@ func hasCustomAssertion(path string, fieldType reflect.Type, customAssertions ma
 
 func assertValue(path string, customAssertion AssertionFunc, actual reflect.Value, expected reflect.Value) (bool, string) {
 	// if both are nil, return true
-	if !actual.IsValid() && !expected.IsValid() {
-		return true, ""
-	}
-
-	// if one of them is nil, return false
-	if !actual.IsValid() || !expected.IsValid() {
-		return false, fmt.Sprintf("Path: %s\nExpected: %v\nActual: %v", path, expected, actual)
-	}
-
 	if customAssertion == nil {
 		customAssertion = defaultAssertionFunc
 	}
 
-	isMatching, newMessage := assertions.So(actual.Interface(), assertions.SoFunc(customAssertion), expected.Interface())
+	isMatching, newMessage := assertions.So(getValue(actual), assertions.SoFunc(customAssertion), getValue(expected))
 
 	if !isMatching {
 		return false, fmt.Sprintf("Path: %s\n%s", path, newMessage)
 	}
 	return true, ""
+}
+
+func getValue(value reflect.Value) any {
+	if !value.IsValid() {
+		return nil
+	}
+	return value.Interface()
 }
 
 func formatMessage(message string, format string, a ...any) string {
