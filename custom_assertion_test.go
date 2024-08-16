@@ -1,6 +1,7 @@
 package assertion
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -183,4 +184,112 @@ func TestRoundFloatToDecimalPlaces(t *testing.T) {
 		})
 	}
 
+}
+
+func TestAssertFloat64WithTolerance(t *testing.T) {
+	testTable := []struct {
+		name       string
+		actual     any
+		expected   any
+		tolerance  float64
+		expectedOk bool
+	}{
+		{
+			name:       "Test matching float",
+			actual:     1.23456789,
+			expected:   1.23456789,
+			tolerance:  0.00000001,
+			expectedOk: true,
+		},
+		{
+			name:       "Test not matching float",
+			actual:     1.23456789,
+			expected:   1.2345678,
+			tolerance:  0.00000001,
+			expectedOk: false,
+		},
+		{
+			name:       "Test matching float with tolerance",
+			actual:     1.23456789,
+			expected:   1.2345678,
+			tolerance:  0.0001,
+			expectedOk: true,
+		},
+		{
+			name:       "Test with non float type",
+			actual:     "1.23456789",
+			expected:   1.23456789,
+			tolerance:  0.00000001,
+			expectedOk: false,
+		},
+		{
+			name:       "Test with missing expected value",
+			actual:     1.23456789,
+			tolerance:  0.00000001,
+			expectedOk: false,
+		},
+		{
+			name:       "Test with missing tolerance",
+			actual:     1.23456789,
+			expected:   1.23456789,
+			expectedOk: true,
+		},
+	}
+
+	for _, tt := range testTable {
+		t.Run(tt.name, func(t *testing.T) {
+			ok, message := assertions.So(tt.actual, assertions.SoFunc(AssertFloat64WithTolerance(tt.tolerance)), tt.expected)
+			if ok != tt.expectedOk {
+				t.Errorf("AssertFloat64WithTolerance failed: %s", message)
+			}
+		})
+	}
+}
+
+func TestAssertStringWithCleanup(t *testing.T) {
+	testTable := []struct {
+		name       string
+		actual     any
+		expected   any
+		cleanup    func(string) string
+		expectedOk bool
+	}{
+		{
+			name:       "Test matching string",
+			actual:     "test",
+			expected:   "test",
+			cleanup:    nil,
+			expectedOk: true,
+		},
+		{
+			name:       "Test not matching string",
+			actual:     "test",
+			expected:   "test1",
+			cleanup:    nil,
+			expectedOk: false,
+		},
+		{
+			name:       "Test matching string with cleanup",
+			actual:     "test",
+			expected:   "test",
+			cleanup:    func(s string) string { return s },
+			expectedOk: true,
+		},
+		{
+			name:       "Test not matching string with cleanup",
+			actual:     "  test  ",
+			expected:   "test ",
+			cleanup:    strings.TrimSpace,
+			expectedOk: true,
+		},
+	}
+
+	for _, tt := range testTable {
+		t.Run(tt.name, func(t *testing.T) {
+			ok, message := assertions.So(tt.actual, assertions.SoFunc(AssertStringWithCleanup(tt.cleanup)), tt.expected)
+			if ok != tt.expectedOk {
+				t.Errorf("AssertStringWithCleanup failed: %s", message)
+			}
+		})
+	}
 }

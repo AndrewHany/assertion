@@ -12,11 +12,34 @@ import (
 var defaultAssertionFunc = assertions.ShouldEqual
 var removeIndexRegex = regexp.MustCompile(`\[\d+\]`)
 
+// Assert compares the actual and expected values using the custom assertions defined
+// and returns the result and message
+// actual is the actual value to be compared
+// expected is the expected value to be compared
+// customAssertions is the map of custom assertions defined for the path or type
+// Example usage:
+//
+//	customAssertions := map[string]AssertionFunc{
+//		"field1": customAssertionFunc1,
+//		"field2": customAssertionFunc2,
+//		"int":    customAssertionFunc3,
+//	}
+//
+// match, message := Assert(actual, expected, customAssertions)
+// returns the result and message
 func Assert(actual any, expected any, customAssertions map[string]AssertionFunc) (bool, string) {
 	// If not custom assertion defined, use default assertion for the whole object
 	return assertWithPaths(reflect.ValueOf(actual), reflect.ValueOf(expected), customAssertions, "$")
 }
 
+// assertWithPaths recursively compares the actual and expected values
+// using the custom assertions defined for the path or type of the field
+// and returns the result and message
+// path is the path of the field in the object
+// customAssertions is the map of custom assertions defined for the path or type
+// actual is the actual value to be compared
+// expected is the expected value to be compared
+// returns the result and message
 func assertWithPaths(
 	actual reflect.Value,
 	expected reflect.Value,
@@ -99,6 +122,7 @@ func assertWithPaths(
 	return match, message
 }
 
+// hasCustomAssertion checks if custom assertion is defined for the path or type of the field
 func hasCustomAssertion(path string, fieldType reflect.Type, customAssertions map[string]AssertionFunc) (AssertionFunc, bool) {
 	// check if custom assertion is defined for the path
 	// replace index with [] to match the path
@@ -114,6 +138,9 @@ func hasCustomAssertion(path string, fieldType reflect.Type, customAssertions ma
 	return nil, false
 }
 
+// assertValue checks if the actual and expected values are matching
+// using the custom assertion function or default assertion function shouldEqual
+// and returns the result and message
 func assertValue(path string, customAssertion AssertionFunc, actual reflect.Value, expected reflect.Value) (bool, string) {
 	// if both are nil, return true
 	if customAssertion == nil {
@@ -128,6 +155,7 @@ func assertValue(path string, customAssertion AssertionFunc, actual reflect.Valu
 	return true, ""
 }
 
+// getValue returns the interface value of the reflect value or nil if not valid
 func getValue(value reflect.Value) any {
 	if !value.IsValid() {
 		return nil
@@ -135,6 +163,7 @@ func getValue(value reflect.Value) any {
 	return value.Interface()
 }
 
+// getType returns the type of the actual value if valid, else returns the type of the expected value if valid else nil
 func getType(act reflect.Value, exp reflect.Value) reflect.Type {
 	if act.IsValid() {
 		return act.Type()
@@ -145,6 +174,7 @@ func getType(act reflect.Value, exp reflect.Value) reflect.Type {
 	return nil
 }
 
+// formatMessage formats the message with the format and arguments using fmt.Sprintf
 func formatMessage(message string, format string, a ...any) string {
 	if message == "" {
 		return fmt.Sprintf(format, a...)
