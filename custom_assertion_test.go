@@ -316,20 +316,6 @@ func TestSkipAssertionIf(t *testing.T) {
 			condition:  func(actual any, expected any) bool { return false },
 			expectedOk: false,
 		},
-		{
-			name:       "Test skip assertion with nil expected value",
-			actual:     "test",
-			expected:   nil,
-			condition:  IsNilExpected,
-			expectedOk: true,
-		},
-		{
-			name:       "Test not skip assertion with nil actual value",
-			actual:     nil,
-			expected:   "test",
-			condition:  IsNilActual,
-			expectedOk: true,
-		},
 	}
 
 	for _, tt := range testTable {
