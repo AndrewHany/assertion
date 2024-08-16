@@ -41,19 +41,16 @@ func AssertFloat64ToDecimalPlaces(decimalPlaces int) AssertionFunc {
 			return "expected value is missing"
 		}
 		if act, ok := actual.(float64); ok {
-			actual = truncateFloatDecimalPlaces(act, decimalPlaces)
+			actual = roundFloatToDecimalPlaces(act, decimalPlaces)
 		}
 		if exp, ok := expected[0].(float64); ok {
-			expected[0] = truncateFloatDecimalPlaces(exp, decimalPlaces)
+			expected[0] = roundFloatToDecimalPlaces(exp, decimalPlaces)
 		}
 		return assertions.ShouldEqual(actual, expected[0])
 	}
 }
 
-func truncateFloatDecimalPlaces(num float64, decimalPlaces int) float64 {
-	// handle 0 decimal places
-	if decimalPlaces == 0 {
-		return math.Floor(num)
-	}
-	return math.Floor(num*math.Pow(10, float64(decimalPlaces))) / math.Pow(10, float64(decimalPlaces))
+func roundFloatToDecimalPlaces(num float64, decimalPlaces int) float64 {
+	precision := math.Pow(10, float64(decimalPlaces))
+	return math.Round(num*precision) / precision
 }

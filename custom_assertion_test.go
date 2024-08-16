@@ -147,7 +147,7 @@ func TestAssertFloat64ToDecimalPlaces(t *testing.T) {
 	}
 }
 
-func TestTruncateFloatDecimalPlaces(t *testing.T) {
+func TestRoundFloatToDecimalPlaces(t *testing.T) {
 	testTable := []struct {
 		name          string
 		num           float64
@@ -164,7 +164,7 @@ func TestTruncateFloatDecimalPlaces(t *testing.T) {
 			name:          "Test truncate float to 3 decimal places",
 			num:           1.23456789,
 			decimalPlaces: 3,
-			expected:      1.234,
+			expected:      1.235,
 		},
 		{
 			name:          "Test truncate float to 4 decimal places",
@@ -176,7 +176,7 @@ func TestTruncateFloatDecimalPlaces(t *testing.T) {
 
 	for _, tt := range testTable {
 		t.Run(tt.name, func(t *testing.T) {
-			actual := truncateFloatDecimalPlaces(tt.num, tt.decimalPlaces)
+			actual := roundFloatToDecimalPlaces(tt.num, tt.decimalPlaces)
 			if actual != tt.expected {
 				t.Errorf("TruncateFloatDecimalPlaces failed: expected %f, got %f", tt.expected, actual)
 			}
