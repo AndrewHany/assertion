@@ -293,3 +293,51 @@ func TestAssertStringWithCleanup(t *testing.T) {
 		})
 	}
 }
+
+func TestSkipAssertionIf(t *testing.T) {
+	testTable := []struct {
+		name       string
+		actual     any
+		expected   any
+		condition  func(actual any, expected any) bool
+		expectedOk bool
+	}{
+		{
+			name:       "Test skip assertion",
+			actual:     "test",
+			expected:   "test ",
+			condition:  func(actual any, expected any) bool { return true },
+			expectedOk: true,
+		},
+		{
+			name:       "Test not skip assertion",
+			actual:     "test",
+			expected:   "test ",
+			condition:  func(actual any, expected any) bool { return false },
+			expectedOk: false,
+		},
+		{
+			name:       "Test skip assertion with nil expected value",
+			actual:     "test",
+			expected:   nil,
+			condition:  IsNilExpected,
+			expectedOk: true,
+		},
+		{
+			name:       "Test not skip assertion with nil actual value",
+			actual:     nil,
+			expected:   "test",
+			condition:  IsNilActual,
+			expectedOk: true,
+		},
+	}
+
+	for _, tt := range testTable {
+		t.Run(tt.name, func(t *testing.T) {
+			ok, message := assertions.So(tt.actual, assertions.SoFunc(SkipAssertionIf(tt.condition, nil)), tt.expected)
+			if ok != tt.expectedOk {
+				t.Errorf("SkipAssertionIf failed: %s", message)
+			}
+		})
+	}
+}

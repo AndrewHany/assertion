@@ -37,7 +37,7 @@ func AssertTimeToDuration(duration time.Duration) AssertionFunc {
 		if exp, ok := expected[0].(time.Time); ok {
 			expected[0] = exp.Truncate(duration)
 		}
-		return assertions.ShouldEqual(actual, expected[0])
+		return defaultAssertionFunc(actual, expected[0])
 	}
 }
 
@@ -54,7 +54,7 @@ func AssertFloat64ToDecimalPlaces(decimalPlaces int) AssertionFunc {
 		if exp, ok := expected[0].(float64); ok {
 			expected[0] = roundFloatToDecimalPlaces(exp, decimalPlaces)
 		}
-		return assertions.ShouldEqual(actual, expected[0])
+		return defaultAssertionFunc(actual, expected[0])
 	}
 }
 
@@ -71,7 +71,7 @@ func AssertFloat64WithTolerance(tolerance float64) AssertionFunc {
 				return assertions.ShouldAlmostEqual(act, exp, tolerance)
 			}
 		}
-		return assertions.ShouldEqual(actual, expected[0])
+		return defaultAssertionFunc(actual, expected[0])
 	}
 }
 
@@ -93,6 +93,30 @@ func AssertStringWithCleanup(cleanup func(string) string) AssertionFunc {
 				return assertions.ShouldEqual(cleanup(act), cleanup(exp))
 			}
 		}
-		return assertions.ShouldEqual(actual, expected[0])
+		return defaultAssertionFunc(actual, expected[0])
+	}
+}
+
+// SkipAssertionIf is a custom assertion function that skips the assertion if the condition is met.
+// if the condition is met, it will return an empty string.
+// if not, it will return the result of the provided customAssertion function or default assertion function shouldEqual.
+func SkipAssertionIf(condition func(actual any, expected any) bool, customAssertion AssertionFunc) AssertionFunc {
+	return func(actual any, expected ...any) string {
+		if len(expected) == 0 {
+			return "expected value is missing"
+		}
+
+		// skip the assertion if the condition is met
+		if condition(actual, expected[0]) {
+			return SkipAssertion(actual, expected)
+		}
+
+		// return the result of the customAssertion function if provided
+		if customAssertion != nil {
+			return customAssertion(actual, expected)
+		}
+
+		// return the default assertion function shouldEqual
+		return defaultAssertionFunc(actual, expected)
 	}
 }
