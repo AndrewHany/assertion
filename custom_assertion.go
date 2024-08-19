@@ -108,15 +108,15 @@ func SkipAssertionIf(condition func(actual any, expected any) bool, customAssert
 
 		// skip the assertion if the condition is met
 		if condition(actual, expected[0]) {
-			return SkipAssertion(actual, expected)
+			return SkipAssertion(actual, expected...)
 		}
 
 		// return the result of the customAssertion function if provided
 		if customAssertion != nil {
-			return customAssertion(actual, expected)
+			return customAssertion(actual, expected...)
 		}
 
 		// return the default assertion function shouldEqual
-		return defaultAssertionFunc(actual, expected)
+		return defaultAssertionFunc(actual, expected...)
 	}
 }
