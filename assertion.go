@@ -110,7 +110,7 @@ func assertWithPaths(
 			if !expected.MapIndex(key).IsValid() {
 				return false, formatMessage(message, "Path: %s\nKey %s not found in expected", path+"."+key.String(), key.String())
 			}
-			if listMatch, listMessage := assertWithPaths(actual.MapIndex(key), expected.MapIndex(key), customAssertions, path+"."+key.String()); !listMatch {
+			if listMatch, listMessage := assertWithPaths(actual.MapIndex(key), expected.MapIndex(key), customAssertions, fmt.Sprintf("%s.%v", path, key.Interface())); !listMatch {
 				match = false
 				message = formatMessage(message, "%s", listMessage)
 			}

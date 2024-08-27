@@ -568,6 +568,13 @@ func TestAssertWithPaths_Maps(t *testing.T) {
 			expectedMatch:   false,
 			expectedMessage: "Path: $.b\nKey b not found in expected",
 		},
+		{
+			name:            "Test with map of int",
+			actual:          map[int]int{1: 1, 2: 2},
+			expected:        map[int]int{1: 1, 2: 3},
+			expectedMatch:   false,
+			expectedMessage: "Path: $.2\nExpected: 3\nActual:   2\n(Should equal)!",
+		},
 	}
 
 	for _, tt := range testTable {
