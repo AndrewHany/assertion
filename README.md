@@ -1,7 +1,7 @@
 # assertions
 Assertion style package, supporting custom assertions
 
-[![GoDoc](https://img.shields.io/badge/pkg.go.dev-doc-blue)](http://pkg.go.dev/github.com/AndrewHany/assertions)
+[![GoDoc](https://img.shields.io/badge/pkg.go.dev-doc-blue)](http://pkg.go.dev/github.com/AndrewHany/assertion)
 
 This package is build on top of `github.com/smarty/assertions` package
 
