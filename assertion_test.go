@@ -8,6 +8,112 @@ import (
 	"time"
 )
 
+func TestAssert(t *testing.T) {
+	type subStruct struct {
+		Field1 int
+		Field2 []int
+	}
+	type testStruct struct {
+		Field1 []string
+		Field2 []subStruct
+	}
+
+	testTable := []struct {
+		name             string
+		actual           any
+		expected         any
+		customAssertions map[string]any
+		expectedMatch    bool
+		expectedMessage  string
+	}{
+		{
+			name: "Test with unordered strings slice matching",
+			actual: testStruct{
+				Field1: []string{"a", "b"},
+				Field2: []subStruct{
+					{Field2: []int{1, 2}},
+				},
+			},
+			expected: testStruct{
+				Field1: []string{"b", "a"},
+				Field2: []subStruct{
+					{Field2: []int{1, 2}},
+				},
+			},
+			customAssertions: map[string]any{
+				"$.Field1": AssertUnorderedSlice(func(actual, expected string) bool {
+					return actual < expected
+				}),
+			},
+			expectedMatch: true,
+		},
+		{
+			name: "Test with unordered slice matching using ids",
+			actual: testStruct{
+				Field1: []string{"a", "b"},
+				Field2: []subStruct{
+					{Field1: 1, Field2: []int{1, 2}},
+					{Field1: 2, Field2: []int{3, 4}},
+				},
+			},
+			expected: testStruct{
+				Field1: []string{"a", "b"},
+				Field2: []subStruct{
+					{Field1: 2, Field2: []int{3, 4}},
+					{Field1: 1, Field2: []int{1, 2}},
+				},
+			},
+			customAssertions: map[string]any{"$.Field2": AssertUnorderedSlice(func(actual, expected subStruct) bool {
+				return actual.Field1 < expected.Field1
+			}),
+			},
+			expectedMatch: true,
+		},
+		{
+			name: "Test with unordered slice matching using ids and custom assertion",
+			actual: testStruct{
+				Field1: []string{"a", "b"},
+				Field2: []subStruct{
+					{Field1: 1, Field2: []int{1, 2}},
+					{Field1: 2, Field2: []int{3, 4}},
+				},
+			},
+			expected: testStruct{
+				Field1: []string{"a", "b"},
+				Field2: []subStruct{
+					{Field1: 2, Field2: []int{5, 6}},
+					{Field1: 1, Field2: []int{7, 8}},
+				},
+			},
+			customAssertions: map[string]any{
+				"$.Field2": AssertUnorderedSlice(func(actual, expected subStruct) bool {
+					return actual.Field1 < expected.Field1
+				}),
+				IntType: SkipAssertion,
+			},
+			expectedMatch: true,
+		},
+	}
+
+	for _, tt := range testTable {
+		t.Run(tt.name, func(t *testing.T) {
+			match, message := Assert(tt.actual, tt.expected, tt.customAssertions)
+			if match != tt.expectedMatch {
+				t.Errorf("Expected match: %v, got: %v", tt.expectedMatch, match)
+			}
+			// remove anything after the word "Diff" in the message till end of line
+			re := regexp.MustCompile(`(?m)^.*Diff:.*?(\n|$)`)
+			// Replace matched lines with an empty string.
+			message = re.ReplaceAllString(message, "")
+
+			if message != tt.expectedMessage {
+				t.Errorf("Expected message:\n%s\ngot:\n%s", tt.expectedMessage, message)
+			}
+		})
+	}
+
+}
+
 func TestAssertValue(t *testing.T) {
 	testTable := []struct {
 		name            string
@@ -321,7 +427,7 @@ func TestAssertWithPaths_genericChecks(t *testing.T) {
 
 	for _, tt := range testTable {
 		t.Run(tt.name, func(t *testing.T) {
-			match, message := assertWithPaths(reflect.ValueOf(tt.actual), reflect.ValueOf(tt.expected), tt.customAssertions, "$")
+			match, message := assertWithPaths(reflect.ValueOf(tt.actual), reflect.ValueOf(tt.expected), nil, tt.customAssertions, "$")
 			if match != tt.expectedMatch {
 				t.Errorf("Expected match: %v, got: %v", tt.expectedMatch, match)
 			}
@@ -400,7 +506,7 @@ func TestAssertWithPaths_structs(t *testing.T) {
 
 	for _, tt := range testTable {
 		t.Run(tt.name, func(t *testing.T) {
-			match, message := assertWithPaths(reflect.ValueOf(tt.actual), reflect.ValueOf(tt.expected), tt.customAssertions, "$")
+			match, message := assertWithPaths(reflect.ValueOf(tt.actual), reflect.ValueOf(tt.expected), nil, tt.customAssertions, "$")
 			if match != tt.expectedMatch {
 				t.Errorf("Expected match: %v, got: %v", tt.expectedMatch, match)
 			}
@@ -482,7 +588,7 @@ func TestAssertWithPaths_Slices(t *testing.T) {
 
 	for _, tt := range testTable {
 		t.Run(tt.name, func(t *testing.T) {
-			match, message := assertWithPaths(reflect.ValueOf(tt.actual), reflect.ValueOf(tt.expected), tt.customAssertions, "$")
+			match, message := assertWithPaths(reflect.ValueOf(tt.actual), reflect.ValueOf(tt.expected), nil, tt.customAssertions, "$")
 			if match != tt.expectedMatch {
 				t.Errorf("Expected match: %v, got: %v", tt.expectedMatch, match)
 			}
@@ -579,7 +685,7 @@ func TestAssertWithPaths_Maps(t *testing.T) {
 
 	for _, tt := range testTable {
 		t.Run(tt.name, func(t *testing.T) {
-			match, message := assertWithPaths(reflect.ValueOf(tt.actual), reflect.ValueOf(tt.expected), tt.customAssertions, "$")
+			match, message := assertWithPaths(reflect.ValueOf(tt.actual), reflect.ValueOf(tt.expected), nil, tt.customAssertions, "$")
 			if match != tt.expectedMatch {
 				t.Errorf("Expected match: %v, got: %v", tt.expectedMatch, match)
 			}
@@ -701,7 +807,116 @@ func TestAssertWithPaths_Complex(t *testing.T) {
 
 	for _, tt := range testTable {
 		t.Run(tt.name, func(t *testing.T) {
-			match, message := assertWithPaths(reflect.ValueOf(tt.actual), reflect.ValueOf(tt.expected), tt.customAssertions, "$")
+			match, message := assertWithPaths(reflect.ValueOf(tt.actual), reflect.ValueOf(tt.expected), nil, tt.customAssertions, "$")
+			if match != tt.expectedMatch {
+				t.Errorf("Expected match: %v, got: %v", tt.expectedMatch, match)
+			}
+			// remove anything after the word "Diff" in the message till end of line
+			re := regexp.MustCompile(`(?m)^.*Diff:.*?(\n|$)`)
+			// Replace matched lines with an empty string.
+			message = re.ReplaceAllString(message, "")
+
+			if message != tt.expectedMessage {
+				t.Errorf("Expected message:\n%s\ngot:\n%s", tt.expectedMessage, message)
+			}
+		})
+	}
+}
+
+func TestAssertWithPaths_Mutators(t *testing.T) {
+	type subStruct struct {
+		Field1 int
+		Field2 []int
+	}
+	type testStruct struct {
+		Field1 []string
+		Field2 []subStruct
+	}
+
+	testTable := []struct {
+		name             string
+		actual           any
+		expected         any
+		customAssertions map[string]AssertionFunc
+		mutators         map[string]MutatorFunc
+		expectedMatch    bool
+		expectedMessage  string
+	}{
+		{
+			name: "Test with unordered strings slice matching",
+			actual: testStruct{
+				Field1: []string{"a", "b"},
+				Field2: []subStruct{
+					{Field2: []int{1, 2}},
+				},
+			},
+			expected: testStruct{
+				Field1: []string{"b", "a"},
+				Field2: []subStruct{
+					{Field2: []int{1, 2}},
+				},
+			},
+			mutators: map[string]MutatorFunc{
+				"$.Field1": AssertUnorderedSlice(func(actual, expected string) bool {
+					return actual < expected
+				}),
+			},
+			expectedMatch: true,
+		},
+		{
+			name: "Test with unordered slice matching using ids",
+			actual: testStruct{
+				Field1: []string{"a", "b"},
+				Field2: []subStruct{
+					{Field1: 1, Field2: []int{1, 2}},
+					{Field1: 2, Field2: []int{3, 4}},
+				},
+			},
+			expected: testStruct{
+				Field1: []string{"a", "b"},
+				Field2: []subStruct{
+					{Field1: 2, Field2: []int{3, 4}},
+					{Field1: 1, Field2: []int{1, 2}},
+				},
+			},
+			mutators: map[string]MutatorFunc{
+				"$.Field2": AssertUnorderedSlice(func(actual, expected subStruct) bool {
+					return actual.Field1 < expected.Field1
+				}),
+			},
+			expectedMatch: true,
+		},
+		{
+			name: "Test with unordered slice matching using ids and custom assertion",
+			actual: testStruct{
+				Field1: []string{"a", "b"},
+				Field2: []subStruct{
+					{Field1: 1, Field2: []int{1, 2}},
+					{Field1: 2, Field2: []int{3, 4}},
+				},
+			},
+			expected: testStruct{
+				Field1: []string{"a", "b"},
+				Field2: []subStruct{
+					{Field1: 2, Field2: []int{5, 6}},
+					{Field1: 1, Field2: []int{7, 8}},
+				},
+			},
+			mutators: map[string]MutatorFunc{
+				"$.Field2": AssertUnorderedSlice(func(actual, expected subStruct) bool {
+					return actual.Field1 < expected.Field1
+				}),
+			},
+			customAssertions: map[string]AssertionFunc{
+				IntType: SkipAssertion,
+			},
+			expectedMatch: true,
+		},
+	}
+
+	for _, tt := range testTable {
+		t.Run(tt.name, func(t *testing.T) {
+			match, message := assertWithPaths(reflect.ValueOf(tt.actual), reflect.ValueOf(tt.expected), tt.mutators, tt.customAssertions, "$")
 			if match != tt.expectedMatch {
 				t.Errorf("Expected match: %v, got: %v", tt.expectedMatch, match)
 			}

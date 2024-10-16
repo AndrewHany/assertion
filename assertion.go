@@ -9,6 +9,10 @@ import (
 	"github.com/smarty/assertions"
 )
 
+type CustomFunc interface {
+	AssertionFunc | MutatorFunc
+}
+
 var defaultAssertionFunc = assertions.ShouldEqual
 var removeIndexRegex = regexp.MustCompile(`\[\d+\]`)
 
@@ -27,9 +31,30 @@ var removeIndexRegex = regexp.MustCompile(`\[\d+\]`)
 //
 // match, message := Assert(actual, expected, customAssertions)
 // returns the result and message
-func Assert(actual any, expected any, customAssertions map[string]AssertionFunc) (bool, string) {
-	// If not custom assertion defined, use default assertion for the whole object
-	return assertWithPaths(reflect.ValueOf(actual), reflect.ValueOf(expected), customAssertions, "$")
+func Assert(actual any, expected any, customAssertions map[string]any) (bool, string) {
+	var customAssertionsMap = make(map[string]AssertionFunc)
+	var mutatorsMap = make(map[string]MutatorFunc)
+	for key, value := range customAssertions {
+		switch value := value.(type) {
+		case AssertionFunc:
+			customAssertionsMap[key] = value
+		case MutatorFunc:
+			mutatorsMap[key] = value
+		// for any other function, try to cast it to AssertionFunc
+		default:
+			if value, ok := value.(func(actual any, expected ...any) string); ok {
+				customAssertionsMap[key] = value
+				continue
+			}
+			if value, ok := value.(func(actual any, expected any) (any, any)); ok {
+				mutatorsMap[key] = value
+				continue
+			}
+			return false, fmt.Sprintf("Invalid custom assertion/mutator function for key %s", key)
+		}
+	}
+
+	return assertWithPaths(reflect.ValueOf(actual), reflect.ValueOf(expected), mutatorsMap, customAssertionsMap, "$")
 }
 
 // assertWithPaths recursively compares the actual and expected values
@@ -43,6 +68,7 @@ func Assert(actual any, expected any, customAssertions map[string]AssertionFunc)
 func assertWithPaths(
 	actual reflect.Value,
 	expected reflect.Value,
+	mutators map[string]MutatorFunc,
 	customAssertions map[string]AssertionFunc,
 	path string,
 ) (bool, string) {
@@ -58,6 +84,13 @@ func assertWithPaths(
 		return true, ""
 	}
 	typ := getType(actual, expected)
+
+	// check if mutator is defined
+	if mutatorFunc, ok := hasMutator(path, typ, mutators); ok {
+		actValue, expValue := mutatorFunc(getValue(actual), getValue(expected))
+		actual = reflect.ValueOf(actValue)
+		expected = reflect.ValueOf(expValue)
+	}
 
 	// check if custom assertion is defined for the path
 	if customAssertionFunc, ok := hasCustomAssertion(path, typ, customAssertions); ok {
@@ -86,7 +119,7 @@ func assertWithPaths(
 			if !expected.FieldByName(field.Name).IsValid() {
 				return false, formatMessage(message, "Path: %s\nField %s not found in expected", fieldPath, field.Name)
 			}
-			if listMatch, listMessage := assertWithPaths(actual.Field(i), expected.FieldByName(field.Name), customAssertions, fieldPath); !listMatch {
+			if listMatch, listMessage := assertWithPaths(actual.Field(i), expected.FieldByName(field.Name), mutators, customAssertions, fieldPath); !listMatch {
 				match = false
 				message = formatMessage(message, "%s", listMessage)
 			}
@@ -96,7 +129,7 @@ func assertWithPaths(
 			return assertValue(path, defaultAssertionFunc, actual, expected)
 		}
 		for i := 0; i < actual.Len(); i++ {
-			if listMatch, listMessage := assertWithPaths(actual.Index(i), expected.Index(i), customAssertions, fmt.Sprintf("%s[%d]", path, i)); !listMatch {
+			if listMatch, listMessage := assertWithPaths(actual.Index(i), expected.Index(i), mutators, customAssertions, fmt.Sprintf("%s[%d]", path, i)); !listMatch {
 				match = false
 				message = formatMessage(message, "%s", listMessage)
 			}
@@ -110,7 +143,7 @@ func assertWithPaths(
 			if !expected.MapIndex(key).IsValid() {
 				return false, formatMessage(message, "Path: %s\nKey %s not found in expected", path+"."+key.String(), key.String())
 			}
-			if listMatch, listMessage := assertWithPaths(actual.MapIndex(key), expected.MapIndex(key), customAssertions, fmt.Sprintf("%s.%v", path, key.Interface())); !listMatch {
+			if listMatch, listMessage := assertWithPaths(actual.MapIndex(key), expected.MapIndex(key), mutators, customAssertions, fmt.Sprintf("%s.%v", path, key.Interface())); !listMatch {
 				match = false
 				message = formatMessage(message, "%s", listMessage)
 			}
@@ -124,6 +157,9 @@ func assertWithPaths(
 
 // hasCustomAssertion checks if custom assertion is defined for the path or type of the field
 func hasCustomAssertion(path string, fieldType reflect.Type, customAssertions map[string]AssertionFunc) (AssertionFunc, bool) {
+	if customAssertions == nil {
+		return nil, false
+	}
 	// check if custom assertion is defined for the path
 	// replace index with [] to match the path
 	if customAssertionByPath, ok := customAssertions[removeIndexRegex.ReplaceAllString(path, "[]")]; ok {
@@ -133,6 +169,24 @@ func hasCustomAssertion(path string, fieldType reflect.Type, customAssertions ma
 	if fieldType != nil {
 		if customAssertionByType, ok := customAssertions[fieldType.String()]; ok {
 			return customAssertionByType, true
+		}
+	}
+	return nil, false
+}
+
+func hasMutator(path string, fieldType reflect.Type, mutators map[string]MutatorFunc) (MutatorFunc, bool) {
+	if mutators == nil {
+		return nil, false
+	}
+	// check if mutator is defined for the path
+	// replace index with [] to match the path
+	if mutatorByPath, ok := mutators[removeIndexRegex.ReplaceAllString(path, "[]")]; ok {
+		return mutatorByPath, true
+	}
+	// check if mutator is defined for the type
+	if fieldType != nil {
+		if mutatorByType, ok := mutators[fieldType.String()]; ok {
+			return mutatorByType, true
 		}
 	}
 	return nil, false
