@@ -433,3 +433,58 @@ func TestAssertNumberWithTolerance(t *testing.T) {
 	}
 
 }
+
+func TestAssertStringWithDistance(t *testing.T) {
+	testTable := []struct {
+		name       string
+		actual     string
+		expected   string
+		distance   int
+		expectedOk bool
+	}{
+		{
+			name:       "Test matching string",
+			actual:     "test",
+			expected:   "test",
+			distance:   0,
+			expectedOk: true,
+		},
+		{
+			name:       "Test not matching string",
+			actual:     "test",
+			expected:   "test1",
+			distance:   0,
+			expectedOk: false,
+		},
+		{
+			name:       "Test matching string with 1 distance",
+			actual:     "test",
+			expected:   "test1",
+			distance:   1,
+			expectedOk: true,
+		},
+		{
+			name:       "Test matching string with 2 distance",
+			actual:     "test12",
+			expected:   "test33",
+			distance:   2,
+			expectedOk: true,
+		},
+		{
+			name:       "Test not matching string with 2 distance",
+			actual:     "test12",
+			expected:   "test331",
+			distance:   2,
+			expectedOk: false,
+		},
+	}
+
+	for _, tt := range testTable {
+		t.Run(tt.name, func(t *testing.T) {
+			ok, message := assertions.So(tt.actual, assertions.SoFunc(AssertStringWithDistance(tt.distance)), tt.expected)
+			if ok != tt.expectedOk {
+				t.Errorf("AssertStringWithCleanup failed: %s", message)
+			}
+		})
+	}
+}

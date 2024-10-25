@@ -4,6 +4,7 @@ import (
 	"math"
 	"time"
 
+	"github.com/agnivade/levenshtein"
 	"github.com/smarty/assertions"
 )
 
@@ -132,6 +133,21 @@ func AssertNumberWithTolerance[T ~int | ~int64 | ~float64 | ~float32 | ~int32](t
 		if act, ok := actual.(T); ok && tolerance > 0 {
 			if exp, ok := expected[0].(T); ok {
 				return assertions.ShouldAlmostEqual(act, exp, tolerance)
+			}
+		}
+		return defaultAssertionFunc(actual, expected[0])
+	}
+}
+
+func AssertStringWithDistance(distance int) AssertionFunc {
+	return func(actual any, expected ...any) string {
+		if len(expected) == 0 || expected[0] == nil {
+			return "expected value is missing"
+		}
+		if act, ok := actual.(string); ok {
+			if exp, ok := expected[0].(string); ok {
+				actualDistance := levenshtein.ComputeDistance(act, exp)
+				return assertions.ShouldBeLessThanOrEqualTo(actualDistance, distance)
 			}
 		}
 		return defaultAssertionFunc(actual, expected[0])
