@@ -120,3 +120,20 @@ func SkipAssertionIf(condition func(actual any, expected any) bool, customAssert
 		return defaultAssertionFunc(actual, expected...)
 	}
 }
+
+// AssertNumberWithTolerance is a custom assertion function that compares number values with a tolerance.
+// tolerance is in format of 0.0001
+// if tolerance is 0, it will compare the value as is.
+func AssertNumberWithTolerance[T ~int | ~int64 | ~float64 | ~float32 | ~int32](tolerance T) AssertionFunc {
+	return func(actual any, expected ...any) string {
+		if len(expected) == 0 || expected[0] == nil {
+			return "expected value is missing"
+		}
+		if act, ok := actual.(T); ok && tolerance > 0 {
+			if exp, ok := expected[0].(T); ok {
+				return assertions.ShouldAlmostEqual(act, exp, tolerance)
+			}
+		}
+		return defaultAssertionFunc(actual, expected[0])
+	}
+}

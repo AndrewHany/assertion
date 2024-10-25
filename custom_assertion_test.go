@@ -327,3 +327,109 @@ func TestSkipAssertionIf(t *testing.T) {
 		})
 	}
 }
+
+func TestAssertNumberWithTolerance(t *testing.T) {
+
+	floatTestTable := []struct {
+		name       string
+		actual     float64
+		expected   float64
+		tolerance  float64
+		expectedOk bool
+	}{
+		{
+			name:       "Test matching float",
+			actual:     1.23456789,
+			expected:   1.23456789,
+			tolerance:  0.00000001,
+			expectedOk: true,
+		},
+		{
+			name:       "Test not matching float",
+			actual:     1.23456789,
+			expected:   1.2345678,
+			tolerance:  0.00000001,
+			expectedOk: false,
+		},
+		{
+			name:       "Test matching float with tolerance",
+			actual:     1.23456789,
+			expected:   1.2345678,
+			tolerance:  0.0001,
+			expectedOk: true,
+		},
+		{
+			name:       "Test with missing expected value",
+			actual:     1.23456789,
+			tolerance:  0.00000001,
+			expectedOk: false,
+		},
+		{
+			name:       "Test with missing tolerance",
+			actual:     1.23456789,
+			expected:   1.23456789,
+			expectedOk: true,
+		},
+	}
+
+	for _, tt := range floatTestTable {
+		t.Run(tt.name, func(t *testing.T) {
+			ok, message := assertions.So(tt.actual, assertions.SoFunc(AssertNumberWithTolerance[float64](tt.tolerance)), tt.expected)
+			if ok != tt.expectedOk {
+				t.Errorf("AssertFloat64WithTolerance failed: %s", message)
+			}
+		})
+	}
+	intTestTable := []struct {
+		name       string
+		actual     int64
+		expected   int64
+		tolerance  int64
+		expectedOk bool
+	}{
+		{
+			name:       "Test matching int",
+			actual:     1,
+			expected:   1,
+			tolerance:  0,
+			expectedOk: true,
+		},
+		{
+			name:       "Test not matching int",
+			actual:     1,
+			expected:   2,
+			tolerance:  0,
+			expectedOk: false,
+		},
+		{
+			name:       "Test matching int with tolerance",
+			actual:     50,
+			expected:   51,
+			tolerance:  1,
+			expectedOk: true,
+		},
+
+		{
+			name:       "Test with missing expected value",
+			actual:     1,
+			tolerance:  0,
+			expectedOk: false,
+		},
+		{
+			name:       "Test with missing tolerance",
+			actual:     1,
+			expected:   1,
+			expectedOk: true,
+		},
+	}
+
+	for _, tt := range intTestTable {
+		t.Run(tt.name, func(t *testing.T) {
+			ok, message := assertions.So(tt.actual, assertions.SoFunc(AssertNumberWithTolerance[int64](tt.tolerance)), tt.expected)
+			if ok != tt.expectedOk {
+				t.Errorf("AssertFloat64WithTolerance failed: %s", message)
+			}
+		})
+	}
+
+}
